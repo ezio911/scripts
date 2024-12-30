@@ -1,61 +1,33 @@
-#!/bin/bash
+set -eu
+
+docker version &>/dev/null
+[[ $? == 0  ]] && echo "docker is installed" && exit 1
+
+[[ `id -u` != 0  ]] && echo "please use root account" && exit
+
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
 
 
-[[ `id -u` != 0 ]] && echo "请使用root用户执行此脚本" && exit 1
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-check_commond(){
-    if [[ $? != 0 ]];then
-        echo "$1 执行失败" && exit 1
-    fi
-}
+docker version && docker compose version
 
-install_docker(){
-
-        type docker &>/dev/null
-        [[ $? == 0 ]] && read -p "docker已存在,是否需要重装:[y/n]:" flag || flag=y
-        [[ $flag != "y" ]] && echo "取消重装docker" && exit 1
-
-        yum remove docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
-        rm -rf /var/lib/docker
-        rm -rf /var/lib/containerd
-
-        # If prompted to accept the GPG key : 060A 61C5 1B55 8A7F 742B 77AA C52F EB6B 621E 9F35
-        # Install the yum-utils package and set up the repository.
-        yum install -y yum-utils
-        check_commond "安装yum-utils"
-        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-
-        # install docker
-        yum -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        check_commond "安装docker"
-
-tee /etc/docker/daemon.json <<'EOF'
+cat >> /etc/docker/daemon.json << "EOF"
 {
   "registry-mirrors": [
-        "https://cf-workers-docker-io-bkt.pages.dev"
-        "https://registry.docker-cn.com"
-        ],
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m",
-    "max-file": "3"
-  },
-  "storage-driver": "overlay2"
+  "https://cf-workers-sub-eew.pages.dev",
+  ]
 }
 EOF
-    systemctl daemon-reload
-    systemctl restart docker
-
-}
-
-install_docker_compose(){
-    curl -SL https://github.com/docker/compose/releases/download/v2.24.1/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-    check_commond "安装docker-compose失败"
-    chmod +x /usr/local/bin/docker-compose
-
-}
-install_docker
-check_commond "安装docker"
-install_docker_compose
-check_commond "安装docker-compose"
