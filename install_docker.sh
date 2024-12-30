@@ -27,7 +27,7 @@ docker version && docker compose version
 cat >> /etc/docker/daemon.json << "EOF"
 {
   "registry-mirrors": [
-  "https://cf-workers-sub-eew.pages.dev",
+  "https://cf-workers-docker-io-1f5.pages.dev",
   ]
 }
 EOF

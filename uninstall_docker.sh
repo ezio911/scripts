@@ -1,35 +1,31 @@
 #!/bin/bash
 
-# 停止 Docker 服务
-echo "Stopping Docker services..."
-sudo systemctl stop docker
-sudo systemctl stop docker.socket
+set -e
 
-# 卸载 Docker 软件包
-echo "Uninstalling Docker packages..."
-sudo apt-get purge -y docker-engine docker docker.io containerd runc
+echo "Stopping Docker service..."
+sudo systemctl stop docker || true
+sudo systemctl disable docker || true
 
-# 删除 Docker 数据目录
-echo "Removing Docker data directories..."
+echo "Removing Docker packages..."
+sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
+
+echo "Cleaning up unused dependencies..."
+sudo apt-get autoremove -y --purge || true
+
+echo "Removing Docker directories..."
 sudo rm -rf /var/lib/docker
 sudo rm -rf /var/lib/containerd
-
-# 删除配置文件
-echo "Removing Docker configuration files..."
 sudo rm -rf /etc/docker
-sudo rm -f /etc/default/docker
+sudo rm -rf /run/docker
+sudo rm -rf /var/run/docker.sock
 
-# 清理 Docker 网络配置
-echo "Cleaning up Docker network interfaces..."
-sudo ip link delete docker0 2>/dev/null || echo "No docker0 interface found."
+echo "Cleaning Docker-related files..."
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo rm -f /etc/apt/keyrings/docker.asc
+sudo rm -f /usr/bin/docker
+sudo rm -f /usr/local/bin/docker
 
-# 搜索和删除残留文件
-echo "Removing residual Docker files..."
-sudo find / -name '*docker*' -exec rm -rf {} + 2>/dev/null
+echo "Updating package lists..."
+sudo apt-get update
 
-# 清理系统缓存
-echo "Cleaning up system packages..."
-sudo apt-get autoremove -y
-sudo apt-get autoclean
-
-echo "Docker has been completely uninstalled."
+echo "Docker has been completely removed from the system."
